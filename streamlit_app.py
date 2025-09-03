@@ -22,7 +22,7 @@ def search_web():
 # 2. PDF Tool (고정 PDF 사용)
 # --------------------------------------------------------------------
 def load_fixed_pdf():
-    pdf_path = "data/SW 중심사회 5월호 전문.pdf.pdf"   # <- 여기에 사용할 PDF 경로 넣기
+    pdf_path = "data/SW 중심사회 5월호 전문.pdf"   
     loader = PyPDFLoader(pdf_path)
     documents = loader.load()
 
