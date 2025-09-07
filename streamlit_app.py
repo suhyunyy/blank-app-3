@@ -31,7 +31,9 @@ def load_fixed_pdf():
 
     vector = Chroma.from_documents(
     documents=split_docs,
-    embedding=OpenAIEmbeddings())
+    embedding=OpenAIEmbeddings(),
+    persist_directory=None
+    )
     retriever = vector.as_retriever(search_kwargs={"k": 5})
 
     retriever_tool = create_retriever_tool(
