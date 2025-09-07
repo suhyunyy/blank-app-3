@@ -2,7 +2,7 @@ import os
 import streamlit as st
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -29,10 +29,7 @@ def load_fixed_pdf():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     split_docs = text_splitter.split_documents(documents)
 
-    vector = Chroma.from_documents(
-    documents=split_docs,
-    embedding=OpenAIEmbeddings()
-    )
+    vector = FAISS.from_documents(split_docs, OpenAIEmbeddings())
     retriever = vector.as_retriever(search_kwargs={"k": 5})
 
     retriever_tool = create_retriever_tool(
