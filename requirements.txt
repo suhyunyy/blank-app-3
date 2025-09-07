@@ -4,7 +4,7 @@ langchain-openai
 langchain-experimental
 langchain-text-splitters
 tavily-python
-faiss-cpu
+chromadb
 pypdf
 streamlit
 pandas

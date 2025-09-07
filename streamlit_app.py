@@ -29,7 +29,9 @@ def load_fixed_pdf():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     split_docs = text_splitter.split_documents(documents)
 
-    vector = FAISS.from_documents(split_docs, OpenAIEmbeddings())
+    vector = Chroma.from_documents(
+    documents=docs,
+    embedding=OpenAIEmbeddings())
     retriever = vector.as_retriever(search_kwargs={"k": 5})
 
     retriever_tool = create_retriever_tool(
