@@ -30,7 +30,7 @@ def load_fixed_pdf():
     split_docs = text_splitter.split_documents(documents)
 
     vector = FAISS.from_documents(split_docs, OpenAIEmbeddings())
-    retriever = vector.as_retriever(search_kwargs={"k": 5})
+    retriever = vector.as_retriever()
 
     retriever_tool = create_retriever_tool(
         retriever,
@@ -48,18 +48,18 @@ def build_agent(tools):
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are a helpful assistant for KEPCO KDN employees. "
-         "Always try `pdf_search` first when answering. "
-         "If `pdf_search` has no relevant results, call ONLY `web_search`. "
-         "Never mix the two tools. "
-         "Answer in Korean with a professional and friendly tone, including emojis."),
+        "당신은 KEPCO KDN 임직원을 위한 유용한 어시스턴트입니다."
+        "항상 먼저 `pdf_search`를 사용해 답변하세요."
+        "`pdf_search`에서 관련 결과가 없을 경우에만 `web_search`를 사용하세요."
+        "두 도구를 절대 함께 사용하지 마세요."
+        "항상 전문적이고 친근한 톤으로 한국어로 답변하며, 이모지도 포함하세요."),
         ("placeholder", "{chat_history}"),
         ("human", "{input}"),
         ("placeholder", "{agent_scratchpad}")
     ])
 
     agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, return_intermediate_steps=True)
     return agent_executor
 
 
@@ -68,9 +68,14 @@ def build_agent(tools):
 # --------------------------------------------------------------------
 def ask_agent(agent_executor, question: str):
     result = agent_executor.invoke({"input": question})
-    return f"답변:\n{result['output']}"
+    answer = result["output"]
 
+    # intermediate_steps에서 마지막만 가져오기
+    if result.get("intermediate_steps"):
+        last_action, _ = result["intermediate_steps"][-1]
+        answer += f"\n\n출처:\n- Tool: {last_action.tool}, Query: {last_action.tool_input}"
 
+    return f"답변:\n{answer}"
 # --------------------------------------------------------------------
 # 5. Streamlit 메인
 # --------------------------------------------------------------------
