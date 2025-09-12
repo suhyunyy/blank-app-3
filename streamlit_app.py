@@ -12,43 +12,46 @@ from langchain.agents import create_tool_calling_agent, AgentExecutor
 
 
 # --------------------------------------------------------------------
-# 1. Web Search Tool 입니다
+# 1. Web Search Tool
 # --------------------------------------------------------------------
 def search_web():
-    return TavilySearchResults(k=6, name="web_search")
-    # 1. Tavily Search Tool 호출하기
 
+# 1. Tavily Search Tool 호출하기
+    search_tool = TavilySearchResults(
+    k=6,name="web_search",description="Use this tool to search the web for up-to-date information."
+    )
 
 # --------------------------------------------------------------------
 # 2. PDF Tool (고정 PDF 사용)
 # --------------------------------------------------------------------
 def load_fixed_pdf():
-    pdf_path = "./data/contract_manual.pdf"     
+    pdf_path = "data/테니스기술모음.pdf"   
+
     # 2. PDF 로더 초기화 및 문서 불러오기
-    all_documents = []
     loader = PyPDFLoader(pdf_path)
-    documents = loader.load()
+
+#    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+# docs = loader.load_and_split(splitter)
+
+    #pages = loader.load_and_split()
 
     # 3. 텍스트를 일정 단위(chunk)로 분할하기
     #    - chunk_size: 한 덩어리의 최대 길이
     #    - chunk_overlap: 덩어리 간 겹치는 부분 길이
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    split_docs = text_splitter.split_documents(documents)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    docs = loader.load_and_split(splitter)
 
     # 4. 분할된 문서들을 임베딩하여 벡터 DB(FAISS)에 저장하기
-    vector = FAISS.from_documents(split_docs, OpenAIEmbeddings())
-    
+    vectorstore = FAISS.from_documents(docs, OpenAIEmbeddings())
 
     # 5. 검색기(retriever) 객체 생성
-    retriever = vector.as_retriever(search_kwargs={"k": 5})
-    
+    retriever = vectorstore.as_retriever()
 
     # 6. retriever를 LangChain Tool 형태로 변환 -> name은 pdf_search로 지정
     retriever_tool = create_retriever_tool(
-        retriever,
-        name="pdf_search",
-        description="This tool gives you direct access to the uploaded PDF documents. "
-                    "Always use this tool first when the question might be answered from the PDFs."
+    retriever,
+    name="pdf_search",
+    description="Search for information inside the uploaded PDF"
     )
 
     return retriever_tool
@@ -62,19 +65,24 @@ def build_agent(tools):
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "당신은 공공기관 계약 관련 제도를 잘 알고 있는 법률 조언가입니다. "
-         "먼저, `pdf_search`를 시도합니다. "
-         "`pdf_search`를 했을때 적합한 답이 없으면, `web_search`를 시행합니다. "
-         "pdf_search와 web_search를 섞어서 대답하지는 마세요. "
-         "사례를 물어볼 시 web_search를 활용하여 대답해주세요. "
-         "이모지를 활용하여 친절하게 대답해주세요"),
+        # 7. 여러분의 챗봇에 맞는 system message 작성하기
+
+     "당신은 유능한 어시스턴트입니다. 당신은 두가지 도구를 사용할 수 있습니다:\n"
+     "- `pdf_search`: 업로드된 '테니스기술모음.PDF' 문서 안에서 답을 검색하는 도구입니다.\n"
+     "- `web_search`: 최신 정보나 '테니스기술모음.PDF'에 없는 일반 지식을 검색하는 도구입니다.\n\n"
+     "도구 사용 규칙:\n"
+     "1. 항상 먼저 `pdf_search`를 사용하여 답을 찾으려고 하세요.\n"
+     "2. 만약 `pdf_search`에서 관련 답변을 찾지 못했거나 불충분하다면, 그 다음에 `web_search`를 사용하세요.\n"
+     "3. 두 도구 모두 답을 제공하지 못한다면 '관련 정보를 찾을 수 없습니다.'라고 답하세요."
+
+        ),
         ("placeholder", "{chat_history}"),
         ("human", "{input}"),
         ("placeholder", "{agent_scratchpad}")
     ])
     # 8.agent 및 aagent_executor 생성하기
     agent = create_tool_calling_agent(llm=llm, tools=tools, prompt=prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,return_intermediate_steps=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, return_intermediate_steps=True)
     return agent_executor
 
 
@@ -84,8 +92,9 @@ def build_agent(tools):
 def ask_agent(agent_executor, question: str):
     result = agent_executor.invoke({"input": question})
     answer = result["output"]
+
     # 9. intermediate_steps 통해 사용툴을 출력할 수 있는 코드 완성하기
-        # intermediate_steps에서 마지막만 가져오기
+    # intermediate_steps에서 마지막만 가져오기
     if result.get("intermediate_steps"):
         last_action, _ = result["intermediate_steps"][-1]
         answer += f"\n\n출처:\n- Tool: {last_action.tool}, Query: {last_action.tool_input}"
@@ -96,10 +105,10 @@ def ask_agent(agent_executor, question: str):
 # --------------------------------------------------------------------
 def main():
     # 10. 여러분의 챗봇에 맞는 스타일로 변경하기
-    st.set_page_config(page_title="공공기관 계약 AI 비서", layout="wide", page_icon="🤖")
-    st.image('data/contract.JPG', width=800)
+    st.set_page_config(page_title="테니스 AI 비서", layout="wide", page_icon="🤖")
+    st.image('data/테니스기술모음.jpg', width=800)
     st.markdown('---')
-    st.title("안녕하세요! PDF + Web 기반 RAG 챗봇 '공공기관 계약 자문 AI 비서' 입니다")  
+    st.title("안녕하세요! PDF + Web 기반 RAG 챗봇 '테니스 AI 비서' 입니다")  
 
     with st.sidebar:
         openai_api = st.text_input("OPENAI API 키", type="password")
