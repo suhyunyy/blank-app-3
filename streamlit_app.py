@@ -25,7 +25,7 @@ def search_web():
 # 2. PDF Tool (고정 PDF 사용)
 # --------------------------------------------------------------------
 def load_fixed_pdf():
-    pdf_path = "data/테니스기술모음.pdf"   
+    pdf_path = "data/SW 중심사회 5월호 전문.pdf"   
 
      # 2. PDF 로더 초기화 및 문서 불러오기
     loader = PyPDFLoader(pdf_path)
@@ -103,7 +103,7 @@ def ask_agent(agent_executor, question: str):
 def main():
     # 10. 여러분의 챗봇에 맞는 스타일로 변경하기
     st.set_page_config(page_title="테니스 AI 비서", layout="wide", page_icon="🤖")
-    st.image('data/테니스기술모음.jpg', width=800)
+    st.image('data/kdn_image.jpg', width=800)
     st.markdown('---')
     st.title("안녕하세요! PDF + Web 기반 RAG 챗봇 '테니스 AI 비서' 입니다")  
 
