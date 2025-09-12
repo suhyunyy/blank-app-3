@@ -27,26 +27,23 @@ def search_web():
 def load_fixed_pdf():
     pdf_path = "data/테니스기술모음.pdf"   
 
-    # 2. PDF 로더 초기화 및 문서 불러오기
+     # 2. PDF 로더 초기화 및 문서 불러오기
     loader = PyPDFLoader(pdf_path)
-
-#    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-# docs = loader.load_and_split(splitter)
-
-    #pages = loader.load_and_split()
+    documents = loader.load()
 
     # 3. 텍스트를 일정 단위(chunk)로 분할하기
     #    - chunk_size: 한 덩어리의 최대 길이
     #    - chunk_overlap: 덩어리 간 겹치는 부분 길이
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    docs = loader.load_and_split(splitter)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    split_docs = text_splitter.split_documents(documents)
 
     # 4. 분할된 문서들을 임베딩하여 벡터 DB(FAISS)에 저장하기
-    vectorstore = FAISS.from_documents(docs, OpenAIEmbeddings())
+    vector = FAISS.from_documents(split_docs, OpenAIEmbeddings())
+    
 
     # 5. 검색기(retriever) 객체 생성
-    retriever = vectorstore.as_retriever()
-
+    retriever = vector.as_retriever(search_kwargs={"k": 5})
+    
     # 6. retriever를 LangChain Tool 형태로 변환 -> name은 pdf_search로 지정
     retriever_tool = create_retriever_tool(
     retriever,
