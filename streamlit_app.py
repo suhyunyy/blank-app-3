@@ -97,7 +97,7 @@ def ask_agent(agent_executor, question: str):
 def main():
     # 10. 여러분의 챗봇에 맞는 스타일로 변경하기
     st.set_page_config(page_title="공공기관 계약 AI 비서", layout="wide", page_icon="🤖")
-    st.image('data/kdn_image.jpg', width=800)
+    st.image('data/contract.jpg', width=800)
     st.markdown('---')
     st.title("안녕하세요! PDF + Web 기반 RAG 챗봇 '공공기관 계약 자문 AI 비서' 입니다")  
 
